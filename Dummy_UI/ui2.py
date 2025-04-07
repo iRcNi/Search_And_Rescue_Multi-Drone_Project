@@ -8,7 +8,7 @@ import matplotlib.patches as patches
 import csv
 
 # Constants
-image_path = "satellite.png"  # Satellite image file name
+image_path = "Dummy_UI/satellite.png"  # Satellite image file name
 selected_points = []
 num_areas = 2  # Number of equal areas to split into
 padding = 10  # Padding for path from the border
