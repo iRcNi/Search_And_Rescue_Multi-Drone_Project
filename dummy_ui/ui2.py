@@ -117,7 +117,7 @@ def export_path_to_csv(path, part_number):
     filename = f"coverage_path_part_{part_number}.csv"
     with open(filename, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["X", "Y"])
+        writer.writerow(["X", "Y", "Latitude", "Longitude"])
         for x, y in path:
             lat, lon = image_to_gps(x, y)
             writer.writerow([x, y, lat, lon])
@@ -151,6 +151,9 @@ def plot_decomposition_and_paths(all_paths):
     plt.legend()
     plt.grid(True)
     plt.show()
+    csv_to_mission("coverage_path_part_1.csv", "auto_mission_1.waypoints", altitude=20)
+    csv_to_mission("coverage_path_part_2.csv", "auto_mission_2.waypoints", altitude=20)
+
 
 def image_to_gps(x, y):
     lat1, lon1 = gps_top_left
@@ -160,6 +163,41 @@ def image_to_gps(x, y):
     lat = lat1 + ((img_h - y) / img_h) * (lat2 - lat1)
     lon = lon1 + (x / img_w) * (lon2 - lon1)
     return (lat, lon)
+
+def csv_to_mission(csv_file, mission_file, altitude=20):
+    waypoints = []
+
+    # Read the CSV and extract lat/lon
+    with open(csv_file, 'r') as file:
+        reader = csv.DictReader(file)
+        for i, row in enumerate(reader):
+            lat = float(row['Latitude'])
+            lon = float(row['Longitude'])
+            waypoints.append((lat, lon))
+
+    # Start building the mission file
+    with open(mission_file, 'w') as f:
+        f.write("QGC WPL 110\n")  # Header
+
+        seq = 0
+        frame = 3  # GLOBAL
+        command = 16  # NAV_WAYPOINT
+        current = 1  # First command
+        autocontinue = 1
+        param1 = 0  # Hold time
+        param2 = 0
+        param3 = 0
+        param4 = 0
+
+        # Home command (can be edited later)
+        f.write(f"{seq}\t0\t16\t0\t0\t0\t0\t0\t0\t0\t0\t1\n")
+        seq += 1
+
+        for lat, lon in waypoints:
+            f.write(f"{seq}\t0\t{command}\t{frame}\t{param1}\t{param2}\t{param3}\t{param4}\t{lat}\t{lon}\t{altitude}\t{autocontinue}\n")
+            seq += 1
+
+    print(f"Mission file '{mission_file}' created with {len(waypoints)} waypoints.")
 
 # Create the main GUI window
 root = tk.Tk()

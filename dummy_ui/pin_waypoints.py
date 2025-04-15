@@ -1,35 +1,51 @@
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import os
-import folium
 
-# === Configuration ===
-images_folder = "/home/mohammed/Documents/Search_And_Rescue_Multi-Drone_Project/Search_And_Rescue_Multi-Drone_Project/pymavlink_testing/waypoints"  # Change this to your actual path
+# GPS bounds of your image
+gps_top_left = (21.497549, 39.249365)     # (lat1, lon1)
+gps_bottom_right = (21.499448, 39.246958) # (lat2, lon2)
 
-# === Initialize a map ===
-# Start centered around the first point we read, fallback default if none found
-map_center = [21.5, 39.2]
-m = folium.Map(location=map_center, zoom_start=10)
+# Convert GPS to image pixel coordinates
+def gps_to_image_coords(lat, lon, width=600, height=600):
+    lat1, lon1 = gps_top_left
+    lat2, lon2 = gps_bottom_right
 
-# === Add waypoints ===
-first_point = True
+    x = ((lon - lon1) / (lon2 - lon1)) * width
+    y = ((lat1 - lat) / (lat1 - lat2)) * height  # y axis flipped
+    return x, y
 
-for filename in os.listdir(images_folder):
-    if filename.endswith(".jpg") or filename.endswith(".png"):
-        try:
-            parts = filename.split("_")
-            if len(parts) >= 2:
-                lat = float(parts[0])
-                lon = float(parts[1])
-                if first_point:
-                    m.location = [lat, lon]  # Center map on first valid point
-                    first_point = False
-                folium.Marker(
-                    location=[lat, lon],
-                    popup=filename,
-                    icon=folium.Icon(color="blue", icon="info-sign")
-                ).add_to(m)
-        except Exception as e:
-            print(f"Error processing {filename}: {e}")
+# Extract GPS from filename
+def extract_gps_from_filename(filepath):
+    name = os.path.basename(filepath)
+    name = os.path.splitext(name)[0]  # Remove extension
+    parts = name.split('_')
+    if len(parts) < 2:
+        raise ValueError(f"Filename format invalid: {name}")
+    lat_str, lon_str = parts[:2]
+    return float(lat_str), float(lon_str)
 
-# === Save the map ===
-m.save("waypoints_map.html")
-print("✅ Map saved as waypoints_map.html")
+# Plot all image-named GPS points on satellite map
+def plot_all_gps_points(directory, image_file="satellite.png"):
+    img = mpimg.imread(image_file)
+
+    plt.figure(figsize=(6, 6))
+    plt.imshow(img, extent=[0, 600, 600, 0])
+
+    for filename in os.listdir(directory):
+        if filename.endswith(".jpg") or filename.endswith(".png"):
+            try:
+                lat, lon = extract_gps_from_filename(filename)
+                x, y = gps_to_image_coords(lat, lon)
+                plt.plot(x, y, 'ro', markersize=5)
+            except Exception as e:
+                print(f"Skipping {filename}: {e}")
+
+    plt.title("All GPS Points on Satellite Image")
+    plt.xticks([])
+    plt.yticks([])
+    plt.tick_params(left=False, bottom=False)
+    plt.show()
+
+# Example usage
+plot_all_gps_points("waypoints")  # Replace with your folder name
