@@ -8,10 +8,13 @@ import matplotlib.patches as patches
 import csv
 
 # Constants
-image_path = "Dummy_UI/satellite.png"  # Satellite image file name
+image_path = "satellite.png"  # Satellite image file name
 selected_points = []
 num_areas = 2  # Number of equal areas to split into
 padding = 10  # Padding for path from the border
+gps_top_left = (21.497549, 39.249365)     # (lat1, lon1)
+gps_bottom_right = (21.499448, 39.246958) # (lat2, lon2)
+
 
 def on_click(event):
     # Get click coordinates and round to nearest grid point
@@ -115,8 +118,9 @@ def export_path_to_csv(path, part_number):
     with open(filename, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["X", "Y"])
-        for point in path:
-            writer.writerow(point)
+        for x, y in path:
+            lat, lon = image_to_gps(x, y)
+            writer.writerow([x, y, lat, lon])
     print(f"Path for part {part_number} saved to {filename}")
 
 def plot_decomposition_and_paths(all_paths):
@@ -147,6 +151,15 @@ def plot_decomposition_and_paths(all_paths):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def image_to_gps(x, y):
+    lat1, lon1 = gps_top_left
+    lat2, lon2 = gps_bottom_right
+    img_w, img_h = 600, 600  # Same as your image resize
+
+    lat = lat1 + ((img_h - y) / img_h) * (lat2 - lat1)
+    lon = lon1 + (x / img_w) * (lon2 - lon1)
+    return (lat, lon)
 
 # Create the main GUI window
 root = tk.Tk()
